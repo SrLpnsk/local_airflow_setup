@@ -1,0 +1,12 @@
+{
+  "postgres_dwh": {
+    "conn_type": "postgres_dwh",
+    "description": null,
+    "host": "postgres",
+    "login": "airflow",
+    "password": "airflow",
+    "schema": "dwh",
+    "port": null,
+    "extra": null
+  }
+}

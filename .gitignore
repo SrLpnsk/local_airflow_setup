@@ -1,0 +1,5 @@
+.idea
+/docker-airflow/airflow_volumes/logs/
+/docker-airflow/airflow_volumes/pgdata/
+/docker-airflow/airflow_volumes/scheduler/
+/_temp/

@@ -1,0 +1,96 @@
+version: '2.2'
+services:
+    redis:
+        image: 'redis:6.2.6'
+        command: redis-server --requirepass redis
+
+    postgres:
+        image: postgres:9.6
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+            - PGDATA=/var/lib/postgresql/data/pgdata
+        volumes:
+            - ./docker-airflow/airflow_volumes/pgdata:/var/lib/postgresql/data/pgdata
+            - ./ddl:/ddl:ro
+            - ./docker-airflow/postgres_entrypoint_init.sh:/postgres_entrypoint_init.sh
+            - ./input:/input:ro
+            - ./output_csv:/output_csv:rw
+        ports:
+            - "5432:5432"
+
+    webserver:
+        image: lpnsk/airflow-with-docker
+        #restart: always
+        depends_on:
+            - postgres
+            - redis
+        environment: # For some reason, Airflow picks env. variables from somewhere unless we override them
+            - LOAD_EX=n
+            - FERNET_KEY=#TBD
+            - EXECUTOR=Celery
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+            - POSTGRES_HOST=postgres
+            - POSTGRES_PORT=5432
+            - REDIS_PASSWORD=redis
+        volumes:
+            - ./docker-airflow/airflow_volumes/config_files:/usr/local/airflow/config_files
+            - ./dags:/usr/local/airflow/dags
+            - ./docker-airflow/airflow_volumes/logs:/usr/local/airflow/logs
+            # Uncomment to include custom plugins
+            #- ./data/plugins:/usr/local/airflow/plugins
+        ports:
+            - "80:8080"
+        command: webserver
+        healthcheck:
+            test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+            interval: 30s
+            timeout: 30s
+            retries: 3
+
+    scheduler:
+        image: lpnsk/airflow-with-docker
+        #restart: always
+        depends_on:
+            - webserver
+        environment: # For some reason, Airflow picks env. variables from somewhere unless we override them
+            - LOAD_EX=n
+            - FERNET_KEY=ponD0nonFIMccGVPCintk03IQCw6ZJVy1LBiqX9RAb0=
+            - EXECUTOR=Celery
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+            - POSTGRES_HOST=postgres
+            - POSTGRES_PORT=5432
+            - REDIS_PASSWORD=redis
+        volumes:
+            - ./dags:/usr/local/airflow/dags
+            - ./docker-airflow/airflow_volumes/logs:/usr/local/airflow/logs
+            # Uncomment to include custom plugins
+            #- ./data/plugins:/usr/local/airflow/plugins
+        command: scheduler
+
+    worker:
+        image: lpnsk/airflow-with-docker
+        #restart: always
+        depends_on:
+            - scheduler
+        environment: # For some reason, Airflow picks env. variables from somewhere unless we override them
+            - LOAD_EX=n
+            - FERNET_KEY=ponD0nonFIMccGVPCintk03IQCw6ZJVy1LBiqX9RAb0=
+            - EXECUTOR=Celery
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+            - POSTGRES_HOST=postgres
+            - POSTGRES_PORT=5432
+            - REDIS_PASSWORD=redis
+        volumes:
+            - ./dags:/usr/local/airflow/dags
+            - ./docker-airflow/airflow_volumes/logs:/usr/local/airflow/logs
+            - ./input:/input:ro
+            - ./output_csv:/output_csv:rw
+        command: celery worker
