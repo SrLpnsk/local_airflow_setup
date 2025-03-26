@@ -1,5 +1,3 @@
-# Technical challenge for data/analytics engineer
-
 ## Local Setup of Airflow and PostgreSQL with Docker
 
 ### Prerequisites
